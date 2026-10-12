@@ -38,6 +38,8 @@ while (queue.length) {
 }
 const filter = file => {
   const name = path.basename(file);
+  const prebuild = file.match(/[\\/]prebuilds[\\/]([^\\/]+)/)?.[1];
+  if (prebuild && !(prebuild.startsWith('darwin-') && (prebuild.includes('arm64') || prebuild.includes('universal')))) return false;
   if (/^(node_modules|\.git|test|tests|__tests__|coverage|examples?|docs|obj|Debug)$/.test(name)) return false;
   if (/\.(map|d\.ts|tsx?|cpp|cc|h|o|obj|pdb|lib|exp|iobj|ipdb|vcxproj|gypi?)$/i.test(name)) return false;
   if (/[\/]better-sqlite3[\/]build[\/]Release[\/]/.test(file)) return name === 'better_sqlite3.node';
