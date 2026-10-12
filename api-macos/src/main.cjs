@@ -16,7 +16,7 @@ const encryption = {
 if (mode === 'chat') {
   process.env.API_CHAT_PLATFORM = 'shared';
   process.env.API_CHAT_LAUNCHER = process.execPath;
-  require(path.join(__dirname, '../managed/out/main/managedEntryPoint.js'));
+  require(path.join(__dirname, '../out/main/managedEntryPoint.js'));
 } else {
   if (mode === 'main') {
     app.setPath('userData', path.join(root, 'launcher'));

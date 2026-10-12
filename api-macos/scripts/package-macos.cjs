@@ -16,7 +16,7 @@ fs.renameSync(path.join(contents, 'MacOS/Electron'), path.join(contents, 'MacOS/
 fs.mkdirSync(app, { recursive: true });
 for (const folder of ['src', 'ui', 'assets']) fs.cpSync(path.join(project, folder), path.join(app, folder), { recursive: true });
 fs.copyFileSync(path.join(project, 'package.json'), path.join(app, 'package.json'));
-fs.cpSync(path.join(cherry, 'out'), path.join(app, 'managed/out'), { recursive: true });
+fs.cpSync(path.join(cherry, 'out'), path.join(app, 'out'), { recursive: true });
 fs.cpSync(path.join(cherry, 'resources/managed-chat'), path.join(app, 'resources/managed-chat'), { recursive: true });
 fs.cpSync(path.join(cherry, 'migrations/sqlite-drizzle'), path.join(resources, 'migrations/sqlite-drizzle'), { recursive: true });
 fs.cpSync(path.join(cherry, 'packages/provider-registry/data'), path.join(resources, 'provider-registry'), { recursive: true });
@@ -55,8 +55,9 @@ for (const [name, dir] of packages) conflicts(dir, path.join(app, 'node_modules'
 const nativeDir = path.join(workspace, 'native-source/target/aarch64-apple-darwin/release/bundle/macos');
 const native = fs.readdirSync(nativeDir).find(name => name.endsWith('.app')); if (!native) throw new Error('Native Cockpit Mac bundle is missing');
 fs.cpSync(path.join(nativeDir, native), path.join(resources, 'native-engine/cockpit-tools.app'), { recursive: true, verbatimSymlinks: true });
-assert.ok(fs.existsSync(path.join(app, 'managed/out/main/managedEntryPoint.js')), 'Managed chat entry is missing');
-assert.ok(fs.existsSync(path.join(app, 'managed/out/preload/preload.js')), 'Managed preload is missing');
+assert.ok(fs.existsSync(path.join(app, 'out/main/managedEntryPoint.js')), 'Managed chat entry is missing');
+assert.ok(fs.existsSync(path.join(app, 'out/preload/preload.js')), 'Managed preload is missing');
+assert.ok(fs.existsSync(path.join(app, 'out/renderer/windows/main/index.html')), 'Managed chat renderer is missing');
 fs.copyFileSync(path.join(cherry, 'LICENSE'), path.join(app, 'LICENSE-Cherry-Studio-AGPL-3.0'));
 fs.copyFileSync(path.join(project, 'licenses/Cockpit-Tools.txt'), path.join(app, 'LICENSE-Cockpit-Tools'));
 function run(file, args) { const result = spawnSync(file, args, { stdio: 'inherit' }); if (result.status !== 0) throw new Error(file + ' failed'); }
