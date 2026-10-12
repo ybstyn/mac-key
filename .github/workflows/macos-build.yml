@@ -1,0 +1,55 @@
+name: Build API for Apple Silicon
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, macos-apple-silicon]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 150
+    env:
+      CI: 'true'
+      CARGO_BUILD_JOBS: '2'
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+      NODE_OPTIONS: '--max-old-space-size=4096'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: native-source/sidecars/cockpit-cliproxy/go.mod
+          cache-dependency-path: native-source/sidecars/cockpit-cliproxy/go.sum
+      - name: Install pinned package manager and Rust
+        run: |
+          npm install --global corepack
+          corepack enable
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-darwin
+      - name: Build, package and verify API
+        run: bash api-macos/scripts/build-cloud.sh
+      - name: Upload installable artifacts and verification reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: API-1.0.15-macos-arm64
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            api-macos/release/*.dmg
+            api-macos/release/*.zip
+            api-macos/release/*.sha256
+            api-macos/release/*report.json
+            api-macos/release/macos-smoke.json
+            api-macos/release/macos-chat-smoke.json
+            api-macos/release/*preview.png
+      - name: Upload isolated failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-diagnostics
+          retention-days: 7
+          path: api-macos/release/*
