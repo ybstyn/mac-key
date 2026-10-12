@@ -73,6 +73,7 @@ jobs:
             api-macos/release/*report.json
             api-macos/release/macos-smoke.json
             api-macos/release/macos-chat-smoke.json
+            api-macos/release/macos-scaled-layout.json
             api-macos/release/*preview.png
       - name: Upload isolated failure diagnostics
         if: failure()
