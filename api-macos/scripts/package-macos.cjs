@@ -71,9 +71,9 @@ for (const file of walk(bundle).filter(file => fs.lstatSync(file).isSymbolicLink
   if (path.isAbsolute(link) || !resolved.startsWith(bundle + path.sep)) throw new Error('Bundle symlink escapes the application: ' + path.relative(bundle, file));
 }
 for (const executable of [path.join(contents, 'MacOS/Electron'), path.join(resources, 'native-engine/cockpit-tools.app/Contents/MacOS/cockpit-tools')]) {
-  run('/usr/bin/lipo', ['-verify_arch', 'arm64', executable]);
+  run('/usr/bin/lipo', [executable, '-verify_arch', 'arm64']);
 }
-for (const file of walk(bundle).filter(file => /\.(node|dylib)$/.test(file))) { const check = spawnSync('/usr/bin/lipo', ['-verify_arch', 'arm64', file], { encoding: 'utf8' }); if (check.status !== 0) throw new Error('Non-arm64 native dependency: ' + path.relative(bundle, file)); }
+for (const file of walk(bundle).filter(file => /\.(node|dylib)$/.test(file))) { const check = spawnSync('/usr/bin/lipo', [file, '-verify_arch', 'arm64'], { encoding: 'utf8' }); if (check.status !== 0) throw new Error('Non-arm64 native dependency: ' + path.relative(bundle, file)); }
 const entitlements = path.join(project, 'scripts/entitlements.plist');
 run('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', '--entitlements', entitlements, bundle]);
 run('/usr/bin/codesign', ['--verify', '--deep', '--strict', bundle]);

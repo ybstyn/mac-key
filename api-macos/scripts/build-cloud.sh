@@ -15,12 +15,15 @@ if [[ "$stage" == all || "$stage" == ui ]]; then
   (cd cherry-studio && pnpm exec tsc --noEmit --composite false --incremental false -p tsconfig.node.json && pnpm exec tsc --noEmit --composite false --incremental false -p tsconfig.web.json && pnpm exec electron-vite build --config electron.managed.vite.config.ts)
 fi
 if [[ "$stage" == all || "$stage" == native ]]; then
-  cd native-source
-  mkdir -p dist
-  printf '<!doctype html><html><body></body></html>\n' > dist/index.html
-  npm ci --ignore-scripts
-  npx --no-install tauri build --target aarch64-apple-darwin --bundles app --config ../api-macos/scripts/native-macos-config.json
-  cd ..
+  if ! node api-macos/scripts/native-cache.cjs; then
+    cd native-source
+    mkdir -p dist
+    printf '<!doctype html><html><body></body></html>\n' > dist/index.html
+    npm ci --ignore-scripts
+    npx --no-install tauri build --target aarch64-apple-darwin --bundles app --config ../api-macos/scripts/native-macos-config.json
+    cd ..
+    node api-macos/scripts/native-cache.cjs --record
+  fi
 fi
 if [[ "$stage" == all || "$stage" == package ]]; then
   cd api-macos
