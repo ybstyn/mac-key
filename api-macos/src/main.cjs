@@ -128,6 +128,6 @@ if (mode === 'chat') {
     const image = nativeImage.createFromPath(path.join(__dirname, '../assets/brand.png')).resize({ width: 18, height: 18 }); image.setTemplateImage(true); tray = new Tray(image); tray.setToolTip('API'); tray.setContextMenu(Menu.buildFromTemplate([{ label: '打开 API', click: () => { window.show(); window.focus(); } }, { label: '退出', click: () => void requestClose() }]));
     app.on('activate', () => { window.show(); window.focus(); }); app.on('second-instance', () => { window.show(); window.focus(); });
     window.once('ready-to-show', () => { window.show(); }); await window.loadFile(path.join(__dirname, '../ui/index.html'));
-  }).catch(error => { if (mode === 'main') dialog.showErrorBox('API 启动未完成', errorText(error)); process.exitCode = 1; app.quit(); });
+  }).catch(error => { if (mode === 'main') dialog.showErrorBox('API 启动未完成', errorText(error)); else process.stderr.write(errorText(error) + '\n' + String(error.stack || '') + '\n'); app.exit(1); });
   app.on('window-all-closed', () => { if (quitting) app.quit(); });
 }
