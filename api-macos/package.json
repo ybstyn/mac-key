@@ -1,0 +1,14 @@
+{
+  "name": "juhai-api-macos",
+  "version": "1.0.15",
+  "private": true,
+  "productName": "API",
+  "description": "API Apple Silicon desktop launcher and embedded managed chat",
+  "main": "src/main.cjs",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "package": "node scripts/package-macos.cjs"
+  },
+  "engines": { "node": ">=24.12.0" }
+}

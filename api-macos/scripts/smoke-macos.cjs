@@ -1,0 +1,14 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
+const { spawnSync } = require('node:child_process');
+assert.equal(process.platform, 'darwin'); assert.equal(process.arch, 'arm64');
+const root = path.resolve(__dirname, '..'), output = fs.mkdtempSync(path.join(os.tmpdir(), 'api-mac-smoke-'));
+const executable = path.join(root, 'build/app/API.app/Contents/MacOS/Electron');
+const launch = spawnSync(executable, ['--api-smoke', output], { env: { ...process.env, CI: 'true' }, timeout: 120000, encoding: 'utf8' });
+assert.equal(launch.status, 0, 'Mac executable must start, unlock Keychain and ping the native engine: ' + launch.stderr.slice(-1500));
+const report = JSON.parse(fs.readFileSync(path.join(output, 'smoke.json')));
+assert.ok(report.keychainRoundTrip); assert.equal(report.nativeEntry, 'switch_codex_account'); assert.equal(report.nativeSwitches, 0);
+fs.copyFileSync(path.join(output, 'smoke.json'), path.join(root, 'release/macos-smoke.json'));
+console.log(JSON.stringify({ passed: true, platform: report.platform, arch: report.arch, nativeVersion: report.nativeVersion, modelCalls: 0 }));

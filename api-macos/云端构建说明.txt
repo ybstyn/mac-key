@@ -1,0 +1,34 @@
+API 1.0.15 Apple Silicon 云端构建工程
+
+这是构建工程，不能当成已验收的 Mac 安装包。
+仓库在 GitHub 上运行 Actions，即可使用云端 Mac 编译；本机无需安装 Xcode、Rust、Node 或 Go。
+目标：Apple Silicon / macOS 13 或更新系统，产物 API_1.0.15_macos-arm64.dmg 和 zip。
+
+工程结构
+api-macos：Mac 启动窗口、钥匙串 Key 保存、原生通信、打包与云端验证。
+cherry-studio：当前最新内置聊天的对应源码，含模型用途及额度提示。
+native-source：Cockpit 1.3.66 原生源码和 Mac 本地通信适配。
+.github/workflows/macos-build.yml：手动或推送触发 Apple Silicon 云端构建。
+
+使用流程
+1. 把工程提交到你允许使用的 GitHub 仓库；仓库公开时，构建源码也会公开。
+2. 打开仓库 Actions → Build API for Apple Silicon → Run workflow。
+3. 构建和 Mac 原生组件／钥匙串／隔离聊天验证通过后，在该运行的 Artifacts 中下载 API-1.0.15-macos-arm64。
+4. 打开 dmg，将 API.app 放入应用程序目录。试用包使用 ad-hoc 签名，尚未做 Apple Developer ID 公证；可能需要在系统隐私与安全设置中明确允许打开。
+5. 首次 Mac 使用需重新接入个人分发 Key；Windows DPAPI 文件不能在 Mac 解密。Mac 保存使用系统钥匙串，不保存在源码或安装包中。
+6. 默认仍连接 http://raspberry5.local:1456，Mac 必须能访问该树莓派。云端 runner 无法直接访问你家中的树莓派，云端验证不自动发送真实模型消息。
+
+行为与边界
+GPT 和 Claude 官方客户端切换通过 Cockpit 原生切换入口；只有用户主动点击并确认保存工作时执行，不使用普通配置写入代替完整原生事务。
+Key 接入、模型目录读取、合并聊天窗口、会话空间与模型提示复用当前实现；各平台 Key 独立。
+程序内树莓派请求直连，保留其他网络的用户代理设置；不把 Windows 注册表功能搬到 Mac，也不修改默认路由或 DNS。
+关闭主窗口询问保留菜单栏或退出，支持记住；活动回复阻止直接退出。
+按用户要求，Mac 版不提供自动更新、版本检查入口或自动下载设置，也不请求树莓派的客户端更新接口。后续需要升级时使用新的 Mac 安装包手动安装。内置聊天未注册 Cherry 更新服务，原生后台构建不生成 updater 产物。Windows 版的更新功能保持原样。
+未完成云端构建、实际启动和聊天验收前，不应把工程或仅生成的归档标记为“可运行已验收”。
+云端聊天检查仅使用本机模拟网关和随机测试 Key：核对两平台请求路径及鉴权、SSE 流式回复、数据库会话重启恢复、不同 Key 用户隔离、无效 Key 提示、窗口缩放和恢复。检查结果为 macos-chat-smoke.json，窗口截图随产物附带。这不能替代目标 Mac 上树莓派真实对话验收。
+最低系统版本来自 Electron 44 的官方要求：https://www.electronjs.org/blog/electron-44-0。
+
+仓库与凭据
+没有向这个工程复制真实个人 Key、树莓派密码、Google Cookie、OAuth Token 或更新签名私钥。
+不需要在仓库设置这些业务秘密，也不需要把 GitHub 密码或 Token 发到聊天。
+第三方许可随源码保留：Cherry Studio AGPL-3.0，Cockpit Tools CC-BY-NC-SA-4.0；原生组件仅作为对应工具的用户请求适配。

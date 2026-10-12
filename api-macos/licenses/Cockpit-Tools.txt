@@ -1,0 +1,12 @@
+Cockpit Tools 1.3.66
+Author/maintainer: jlcodes
+Source repository: https://github.com/jlcodes99/cockpit-tools
+Original version/tag: v1.3.66
+Declared license: CC-BY-NC-SA-4.0
+License terms: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+
+The bundled native helper is a modified build of Cockpit Tools. Its original
+account-switch and instance-launch command modules remain the implementation
+of those operations. The API transport adapter adds authenticated same-user
+IPC and the Apple Silicon package integrates the helper with the API launcher.
+Corresponding modified source is included in the build repository.
