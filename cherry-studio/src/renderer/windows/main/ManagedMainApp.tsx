@@ -7,7 +7,6 @@ import {
 } from '@renderer/components/app/sidebarShortcuts'
 import { CodeStyleProvider } from '@renderer/components/CodeStyleProvider'
 import { CommandContextKeyProvider, CommandProvider } from '@renderer/components/command'
-import { ConversationNotificationRuntime } from '@renderer/components/ConversationNotificationRuntime'
 import { ErrorBoundary } from '@renderer/components/ErrorBoundary'
 import { TabsProvider } from '@renderer/components/layout/TabsProvider'
 import { PopupHost } from '@renderer/components/PopupHost'
@@ -50,7 +49,6 @@ export default function ManagedMainApp() {
                 <SidebarShortcutRegistryProvider registry={registry}>
                   <ManagedShell />
                   <ManagedRuntime />
-                  <ConversationNotificationRuntime />
                   <PopupHost />
                   <ToastHost />
                 </SidebarShortcutRegistryProvider>

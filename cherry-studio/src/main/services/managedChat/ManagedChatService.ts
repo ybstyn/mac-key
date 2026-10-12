@@ -9,7 +9,6 @@ import { app, session } from 'electron'
 import { application } from '@application'
 import { notifyDataApiDataChange } from '@data/dataApiDataChange'
 import { appStateTable } from '@data/db/schemas/appState'
-import { messageTable } from '@data/db/schemas/message'
 import { topicTable } from '@data/db/schemas/topic'
 import { assistantDataService } from '@data/services/AssistantService'
 import { messageService } from '@data/services/MessageService'
@@ -482,8 +481,9 @@ export class ManagedChatService extends BaseService {
         .getDb()
         .select({
           id: topicTable.id,
-          firstUserText: sql<string>`coalesce((select substr(${messageTable.searchableText}, 1, 120) from ${messageTable} where ${messageTable.topicId} = ${topicTable.id} and ${messageTable.role} = 'user' and ${messageTable.deletedAt} is null order by ${messageTable.createdAt}, ${messageTable.id} limit 1), '')`,
-          latestReplyAt: sql<number>`coalesce((select max(${messageTable.createdAt}) from ${messageTable} where ${messageTable.topicId} = ${topicTable.id} and ${messageTable.role} = 'assistant' and ${messageTable.status} = 'success' and ${messageTable.deletedAt} is null), 0)`
+          // Keep the outer topic qualifier; Drizzle strips interpolated column qualifiers in a single-table projection.
+          firstUserText: sql<string>`coalesce((select substr(m.searchable_text, 1, 120) from message m where m.topic_id = topic.id and m.role = 'user' and m.deleted_at is null order by m.created_at, m.id limit 1), '')`,
+          latestReplyAt: sql<number>`coalesce((select max(m.created_at) from message m where m.topic_id = topic.id and m.role = 'assistant' and m.status = 'success' and m.deleted_at is null), 0)`
         })
         .from(topicTable)
         .where(inArray(topicTable.id, ids))
@@ -493,7 +493,10 @@ export class ManagedChatService extends BaseService {
         for (const topic of model.topics) {
           const row = byId.get(topic.id)
           topic.latestReplyAt = row?.latestReplyAt || 0
-          if (!topic.name) topic.name = Array.from((row?.firstUserText || '').replace(/\s+/g, ' ').trim()).slice(0, 56).join('')
+          if (!topic.name)
+            topic.name = Array.from((row?.firstUserText || '').replace(/\s+/g, ' ').trim())
+              .slice(0, 56)
+              .join('')
         }
     }
     return { models }

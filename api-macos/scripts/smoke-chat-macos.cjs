@@ -59,6 +59,19 @@ async function rpc(page, route, input) {
   const envelope = await page.evaluate(async ({ route, input }) => window.api.ipcApi.request(route, input), { route, input });
   assert.ok(envelope.ok, JSON.stringify(envelope.error)); return envelope.data;
 }
+async function catalogReady(page, count) {
+  await expect(page.locator('[data-ui="api-managed.model-picker"]')).toBeVisible({ timeout: 90000 });
+  const workspace = await rpc(page, 'managed_chat.workspace');
+  assert.equal(workspace.models.length, count);
+  await page.locator('[data-ui="api-managed.model-picker"]').click();
+  await expect(page.locator('[data-ui="api-managed.model"]')).toHaveCount(count);
+  await page.keyboard.press('Escape');
+  return workspace;
+}
+async function selectModel(page, model) {
+  await page.locator('[data-ui="api-managed.model-picker"]').click();
+  await page.locator('[data-ui="api-managed.model"][data-model-id="' + model.id + '"]').click();
+}
 const opened = new Set();
 async function launch(args = [], profile) {
   const env = { ...process.env, CI: 'true' };
@@ -91,17 +104,18 @@ async function close(instance) { await instance.close(); opened.delete(instance)
     return store.provision({ platform: 'shared', server: origin, group, entryPlatform: 'claude', channels });
   }, { origin, keys, other });
   const profile = await seed(false), chat = await launch(['--api-chat'], profile), page = await chat.firstWindow();
-  await expect(page.locator('[data-ui="api-managed.model"]')).toHaveCount(2, { timeout: 90000 });
+  await catalogReady(page, 2);
   const topics = {};
   for (const platform of ['claude', 'gemini']) {
     const model = (await rpc(page, 'managed_chat.workspace')).models.find(row => row.platform === platform);
     assert.ok(model.available);
     const topic = await rpc(page, 'managed_chat.create_topic', { modelId: model.id }); topics[platform] = topic.id;
-    const button = page.locator('[data-ui="api-managed.model"][data-model-id="' + model.id + '"]'); await button.click();
+    await selectModel(page, model);
     await page.locator('[data-ui="api-managed.topic"][data-topic-id="' + topic.id + '"]').click({ timeout: 15000 });
     await rpc(page, 'ai.stream.open', { topicId: topic.id, trigger: 'submit-message', userMessageParts: [{ type: 'text', text: 'hello-local-' + platform }] });
     await expect(page.getByText(markers[platform], { exact: false }).first()).toBeVisible({ timeout: 45000 });
-    await expect(page.locator('[data-ui="api-managed.model"]').first()).toBeEnabled();
+    await expect(page.locator('[data-ui="api-managed.new-topic"]')).toBeEnabled();
+    await expect(page.locator('[data-ui="api-managed.platform"][data-platform="' + (platform === 'claude' ? 'gemini' : 'claude') + '"]')).toBeEnabled();
   }
   assert.ok(!failure, failure?.message);
   assert.ok(observations.some(row => row.platform === 'claude' && row.authenticated));
@@ -110,20 +124,18 @@ async function close(instance) { await instance.close(); opened.delete(instance)
   await close(chat);
   assert.equal(await seed(false), profile);
   const reopened = await launch(['--api-chat'], profile), restored = await reopened.firstWindow();
-  await expect(restored.locator('[data-ui="api-managed.model"]')).toHaveCount(2, { timeout: 90000 });
-  const workspace = await rpc(restored, 'managed_chat.workspace');
+  const workspace = await catalogReady(restored, 2);
   for (const platform of ['claude', 'gemini']) {
     const model = workspace.models.find(row => row.platform === platform);
     assert.ok(model.topics.some(row => row.id === topics[platform]), 'Saved conversations must survive restarting');
-    await restored.locator('[data-ui="api-managed.model"][data-model-id="' + model.id + '"]').click();
+    await selectModel(restored, model);
     await restored.locator('[data-ui="api-managed.topic"][data-topic-id="' + topics[platform] + '"]').click();
     await expect(restored.getByText(markers[platform], { exact: false }).first()).toBeVisible();
   }
   await close(reopened);
   const otherProfile = await seed(true); assert.notEqual(otherProfile, profile);
   const otherChat = await launch(['--api-chat'], otherProfile), otherPage = await otherChat.firstWindow();
-  await expect(otherPage.locator('[data-ui="api-managed.model"]')).toHaveCount(1, { timeout: 90000 });
-  const otherWorkspace = await rpc(otherPage, 'managed_chat.workspace');
+  const otherWorkspace = await catalogReady(otherPage, 1);
   assert.ok(otherWorkspace.models.every(model => model.topics.every(topic => !Object.values(topics).includes(topic.id))), 'A different distributed Key must not load another user history');
   await close(otherChat);
   await launcher.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.setSize(1024, 700); window.webContents.setZoomFactor(1.25); });
