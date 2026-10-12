@@ -9,7 +9,7 @@ command -v corepack >/dev/null
 corepack enable
 stage="${1:-all}"
 if [[ "$stage" == all || "$stage" == dependencies ]]; then
-  (cd cherry-studio && pnpm install --frozen-lockfile && pnpm exec electron-rebuild --force --only better-sqlite3 --arch arm64)
+  (cd cherry-studio && pnpm install --frozen-lockfile && pnpm exec install-electron && pnpm exec electron-rebuild --force --only better-sqlite3 --arch arm64)
 fi
 if [[ "$stage" == all || "$stage" == ui ]]; then
   (cd cherry-studio && pnpm exec tsc --noEmit --composite false --incremental false -p tsconfig.node.json && pnpm exec tsc --noEmit --composite false --incremental false -p tsconfig.web.json && pnpm exec electron-vite build --config electron.managed.vite.config.ts)
