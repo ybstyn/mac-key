@@ -586,7 +586,7 @@
   "api_managed.key_hint": "Gemini、Claude 各填写自己的分发 Key。任意填一个即可接入，留空保留已连接平台。",
   "api_managed.key_tip": "可以在此处添加或修改 Gemini 和 Claude 的 Key",
   "api_managed.key_saved": "已连接",
-  "api_managed.key_keep": "Key 已保存，留空保留；输入新 Key 可修改",
+  "api_managed.key_keep": "平台已连接，留空保留；输入新 Key 可修改",
   "api_managed.key_gemini": "输入 Gemini 分发 Key（选填）",
   "api_managed.key_claude": "输入 Claude 分发 Key（选填）",
   "api_managed.key_isolation": "更换已连接的 Key 会打开独立会话空间，原会话保留。正在回复时请先等待完成或停止。",

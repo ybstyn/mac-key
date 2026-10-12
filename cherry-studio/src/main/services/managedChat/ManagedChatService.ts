@@ -356,6 +356,8 @@ export class ManagedChatService extends BaseService {
       }
       const channels = config.channels.filter((channel) => !provided.includes(channel.platform)).concat(accepted)
       const keys = Object.fromEntries(channels.map((channel) => [channel.platform, channel.key]))
+      if (replacement && messageService.findPendingAssistantMessageIds().length)
+        throw new Error('正在生成回复，请先停止或等待完成，再更换 Key。')
       const result = await new Promise<{ saved: boolean; switched: boolean }>((resolve, reject) => {
         const child = execFile(
           process.env.API_CHAT_LAUNCHER!,
@@ -378,7 +380,7 @@ export class ManagedChatService extends BaseService {
             server: config.server,
             profile: process.env.API_CHAT_PROFILE,
             group: config.group,
-            entryPlatform: config.entryPlatform,
+            entryPlatform: accepted[0].platform,
             enteredPlatforms: provided,
             claude: keys.claude || '',
             gemini: keys.gemini || '',
@@ -389,7 +391,9 @@ export class ManagedChatService extends BaseService {
       })
       if (!result.saved) throw new Error('Key 尚未保存，原配置仍可用。')
       if (result.switched) {
-        setTimeout(() => app.quit(), 300)
+        setTimeout(() => {
+          if (messageService.findPendingAssistantMessageIds().length === 0) app.quit()
+        }, 300)
       } else {
         config.channels = channels
         for (const channel of accepted) this.configureChannel(channel)

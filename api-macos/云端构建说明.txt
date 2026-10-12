@@ -30,5 +30,6 @@ Key 接入、模型目录读取、合并聊天窗口、会话空间与模型提�
 
 仓库与凭据
 没有向这个工程复制真实个人 Key、树莓派密码、Google Cookie、OAuth Token 或更新签名私钥。
+Mac 构建副本已移除上游内嵌的 Google OAuth 客户端 Secret 和 Windsurf Firebase 应用 Key。隐藏后台只暴露 GPT／Claude 网关原生切换入口；Antigravity、Windsurf 和 Gemini CLI 账号登录不属于本产品。Gemini 内置聊天直接使用树莓派网关和个人分发 Key。该清理不修改 Windows 原工程或树莓派部署。
 不需要在仓库设置这些业务秘密，也不需要把 GitHub 密码或 Token 发到聊天。
 第三方许可随源码保留：Cherry Studio AGPL-3.0，Cockpit Tools CC-BY-NC-SA-4.0；原生组件仅作为对应工具的用户请求适配。

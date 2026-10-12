@@ -2,6 +2,7 @@ from pathlib import Path
 import hashlib
 import json
 import os
+import re
 import shutil
 
 workspace = Path(__file__).resolve().parents[2]
@@ -35,6 +36,16 @@ for file in cherry.iterdir():
     if file.is_file() and allowed(file) and (file.suffix in ['.json', '.yaml', '.yml', '.ts', '.cjs', '.md'] or file.name in ['LICENSE', '.npmrc', '.nvmrc', '.node-version']):
         shutil.copy2(file, destination / 'cherry-studio' / file.name)
 tree(workspace / 'juhai-api-build/source/cockpit-tools-1.3.66', destination / 'native-source')
+upstream_google_values = re.compile(rb'(?:GOCSPX-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{35})')
+removed_upstream_values = 0
+for file in (destination / 'native-source').rglob('*'):
+    if not file.is_file():
+        continue
+    data = file.read_bytes()
+    cleaned, count = upstream_google_values.subn(b'', data)
+    if count:
+        file.write_bytes(cleaned)
+        removed_upstream_values += count
 assets = destination / 'api-macos/assets'
 assets.mkdir(exist_ok=True)
 for source, target in [('juhai-logo.png', 'brand.png'), ('app-icon-preview.png', 'brand-icon.png'), ('openai.png', 'openai.png'), ('claude.png', 'claude.png'), ('gemini.png', 'gemini.png')]:
@@ -46,6 +57,6 @@ shutil.copy2(workspace / 'api-macos/cloud-workflow.yml', flows / 'macos-build.ym
 shutil.copy2(workspace / 'api-macos/云端构建说明.txt', destination / '构建说明.txt')
 shutil.copy2(workspace / 'api-macos/cloud-readme.md', destination / 'README.md')
 files = [file for file in destination.rglob('*') if file.is_file() and '.git' not in file.relative_to(destination).parts]
-report = {'files': len(files), 'bytes': sum(file.stat().st_size for file in files), 'nativeTransport': 'macOS same-user authenticated Unix socket', 'modelCalls': 0, 'macBuildExecuted': False}
+report = {'files': len(files), 'bytes': sum(file.stat().st_size for file in files), 'nativeTransport': 'macOS same-user authenticated Unix socket', 'modelCalls': 0, 'macBuildExecuted': False, 'excludedUnusedUpstreamGoogleAppValues': removed_upstream_values}
 (destination / 'preparation-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf8')
 print(json.dumps(report))

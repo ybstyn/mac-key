@@ -586,7 +586,7 @@
   "api_managed.key_hint": "Enter the distributed Key for each platform. Either one is enough; leave a field blank to keep its connected platform.",
   "api_managed.key_tip": "Add or change your Gemini and Claude Keys here",
   "api_managed.key_saved": "Connected",
-  "api_managed.key_keep": "Key saved; leave blank to keep it, or enter a new Key",
+  "api_managed.key_keep": "Platform connected; leave blank to keep it, or enter a new Key",
   "api_managed.key_gemini": "Gemini distributed Key (optional)",
   "api_managed.key_claude": "Claude distributed Key (optional)",
   "api_managed.key_isolation": "Changing a connected Key opens a separate conversation space and preserves the original history. Finish or stop active replies first.",
