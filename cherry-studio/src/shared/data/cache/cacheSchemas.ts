@@ -440,6 +440,7 @@ export type RendererPersistCacheSchema = {
   'ui.composer.input_history': string[]
   'ui.chat.last_used_assistant_id': string | null
   'ui.chat.last_used_topic_id': string | null
+  'ui.managed_chat.read_receipts': Record<string, number>
   // Per-surface classic-layout right-pane override. Null delegates to the page's position-derived
   // default; booleans preserve an explicit user choice across page re-entry.
   'ui.chat.right_pane_open_override': boolean | null
@@ -505,6 +506,7 @@ export const DefaultRendererPersistCache: RendererPersistCacheSchema = {
   'ui.composer.input_history': [],
   'ui.chat.last_used_assistant_id': null,
   'ui.chat.last_used_topic_id': null,
+  'ui.managed_chat.read_receipts': {},
   'ui.chat.right_pane_open_override': null,
   'ui.assistant.entity_rail.expansion': [],
   'ui.topic.expansion.time': [],

@@ -38,7 +38,9 @@ export const managedChatRequestSchemas = {
           name: z.string(),
           platform: z.enum(['claude', 'gemini']),
           available: z.boolean(),
-          topics: z.array(z.object({ id: z.string(), name: z.string() }))
+          topics: z.array(
+            z.object({ id: z.string(), name: z.string(), lastActivityAt: z.string(), latestReplyAt: z.number() })
+          )
         })
       )
     })
