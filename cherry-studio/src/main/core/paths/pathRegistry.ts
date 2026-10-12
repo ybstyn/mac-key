@@ -67,7 +67,11 @@ export function buildPathRegistry() {
     'feature.managed_chat.gemini_icon_file': path.join(appRootResources, 'managed-chat', 'gemini.png'),
     'feature.managed_chat.claude_icon_file': path.join(appRootResources, 'managed-chat', 'claude.png'),
     'feature.managed_chat.brand_icon_file': path.join(appRootResources, 'managed-chat', 'brand.png'),
-    'feature.managed_chat.application_icon_file': path.join(appRootResources, 'managed-chat', 'brand.ico'),
+    'feature.managed_chat.application_icon_file': path.join(
+      appRootResources,
+      'managed-chat',
+      isMac ? 'brand.png' : 'brand.ico'
+    ),
     // -- A. cherry.* — CHERRY_HOME infrastructure --
     'cherry.home': CHERRY_HOME,
     'cherry.bin': path.join(CHERRY_HOME, 'bin'),

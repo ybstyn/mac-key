@@ -9,6 +9,7 @@ import { ResourceViewSourceProvider } from '@renderer/components/ResourceViewSou
 import { WindowControls } from '@renderer/components/WindowControls'
 import { useTabs } from '@renderer/hooks/tab'
 import { ipcApi } from '@renderer/ipc'
+import { isMac } from '@renderer/utils/platform'
 import type { OutputFor } from '@shared/ipc/types'
 
 export function ManagedShell() {
@@ -29,7 +30,8 @@ export function ManagedShell() {
   }
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex h-14 shrink-0 items-center gap-3 px-4 [-webkit-app-region:drag]">
+      <header
+        className={'flex h-14 shrink-0 items-center gap-3 px-4 [-webkit-app-region:drag]' + (isMac ? ' pl-20' : '')}>
         {info && (
           <>
             <div className="flex size-7 items-center justify-center rounded-md bg-foreground p-1">

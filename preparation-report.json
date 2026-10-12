@@ -1,8 +1,9 @@
 {
-  "files": 12908,
-  "bytes": 170630005,
+  "version": "1.0.17",
+  "stage": "source preparation",
+  "files": 12909,
+  "bytes": 170647950,
   "nativeTransport": "macOS same-user authenticated Unix socket",
   "modelCalls": 0,
-  "macBuildExecuted": false,
   "excludedUnusedUpstreamGoogleAppValues": 9
 }

@@ -1,10 +1,9 @@
 {
-  "scannedSourceFiles": 12908,
+  "scannedSourceFiles": 12909,
   "unrecognizedKeyOrTokenPatterns": 0,
   "publicSyntheticUnitTestFixtures": 4,
   "privateCredentialFiles": 0,
-  "macBuildExecuted": false,
-  "githubPushed": false,
+  "sourceOnlyAudit": true,
   "macAutomaticUpdates": false,
   "macVersionCheckEndpoint": false
 }

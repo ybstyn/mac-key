@@ -351,7 +351,7 @@ export class ManagedChatService extends BaseService {
         }
         accepted.push(candidate)
       }
-      if (process.platform !== 'win32') {
+      if (process.platform !== 'win32' && process.platform !== 'darwin') {
         for (const channel of accepted) await this.connectKey(channel.key, input.remember)
         return { platforms: accepted.map((channel) => channel.platform), switched: false }
       }

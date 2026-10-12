@@ -24,7 +24,7 @@ export const navigationHandlers: IpcHandlersFor<typeof navigationRequestSchemas>
   // queue flush) — see the handler docs in mainWindowNavigation.ts.
   'navigation.protocol_dispatch_ready': async (_input, { senderId }) => {
     if (senderId) {
-      application.get('ProtocolService').onMainRendererReady(senderId)
+      if (!process.env.API_CHAT_PROFILE) application.get('ProtocolService').onMainRendererReady(senderId)
       markMainRendererReadyForTabAttach(senderId)
     }
   },

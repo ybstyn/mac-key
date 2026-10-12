@@ -78,7 +78,8 @@ export class TrayService extends BaseService implements Activatable {
 
     this.tray.on('click', () => {
       const preferenceService = application.get('PreferenceService')
-      const quickAssistantEnabled = preferenceService.get('feature.quick_assistant.enabled')
+      const quickAssistantEnabled =
+        !process.env.API_CHAT_PROFILE && preferenceService.get('feature.quick_assistant.enabled')
       const clickTrayToShowQuickAssistant = preferenceService.get('feature.quick_assistant.click_tray_to_show')
 
       if (quickAssistantEnabled && clickTrayToShowQuickAssistant) {
@@ -99,7 +100,8 @@ export class TrayService extends BaseService implements Activatable {
 
   private updateContextMenu() {
     const preferenceService = application.get('PreferenceService')
-    const quickAssistantEnabled = preferenceService.get('feature.quick_assistant.enabled')
+    const quickAssistantEnabled =
+      !process.env.API_CHAT_PROFILE && preferenceService.get('feature.quick_assistant.enabled')
     const selectionAssistantEnabled = preferenceService.get('feature.selection.enabled')
 
     const template = [
@@ -111,13 +113,14 @@ export class TrayService extends BaseService implements Activatable {
         label: t('tray.show_quick_assistant'),
         click: () => application.get('QuickAssistantService').showQuickAssistant()
       },
-      (isWin || isMac) && {
-        label: t('selection.name') + (selectionAssistantEnabled ? ' - On' : ' - Off'),
-        click: () => {
-          application.get('SelectionService').toggleEnabled()
-          this.updateContextMenu()
-        }
-      },
+      !process.env.API_CHAT_PROFILE &&
+        (isWin || isMac) && {
+          label: t('selection.name') + (selectionAssistantEnabled ? ' - On' : ' - Off'),
+          click: () => {
+            application.get('SelectionService').toggleEnabled()
+            this.updateContextMenu()
+          }
+        },
       { type: 'separator' },
       {
         label: t('tray.quit'),
