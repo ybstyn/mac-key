@@ -42,10 +42,12 @@ jobs:
             native-source/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: macos-arm64-native-${{ hashFiles('native-source/Cargo.lock', 'native-source/**/Cargo.toml') }}-v2
+          key: macos-arm64-native-${{ hashFiles('native-source/Cargo.lock', 'native-source/**/Cargo.toml') }}-v3
           restore-keys: macos-arm64-native-
       - name: Compile original Cockpit native engine for ARM64
         id: native-build
+        env:
+          API_NATIVE_CACHE_KEY: ${{ steps.native-cache.outputs.cache-matched-key }}
         run: bash api-macos/scripts/build-cloud.sh native
       - name: Save native compiler cache
         if: always() && steps.native-build.outcome != 'skipped' && steps.native-cache.outputs.cache-hit != 'true'
