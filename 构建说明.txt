@@ -1,8 +1,8 @@
-API 1.0.15 Apple Silicon 云端构建工程
+API 1.0.17 Apple Silicon 云端构建工程
 
 这是构建工程，不能当成已验收的 Mac 安装包。
 仓库在 GitHub 上运行 Actions，即可使用云端 Mac 编译；本机无需安装 Xcode、Rust、Node 或 Go。
-目标：Apple Silicon / macOS 13 或更新系统，产物 API_1.0.15_macos-arm64.dmg 和 zip。
+目标：Apple Silicon / macOS 13 或更新系统，产物 API_1.0.17_macos-arm64.dmg 和 zip。
 
 工程结构
 api-macos：Mac 启动窗口、钥匙串 Key 保存、原生通信、打包与云端验证。
@@ -13,7 +13,7 @@ native-source：Cockpit 1.3.66 原生源码和 Mac 本地通信适配。
 使用流程
 1. 把工程提交到你允许使用的 GitHub 仓库；仓库公开时，构建源码也会公开。
 2. 打开仓库 Actions → Build API for Apple Silicon → Run workflow。
-3. 构建和 Mac 原生组件／钥匙串／隔离聊天验证通过后，在该运行的 Artifacts 中下载 API-1.0.15-macos-arm64。
+3. 构建和 Mac 原生组件／钥匙串／隔离聊天验证通过后，在该运行的 Artifacts 中下载 API-1.0.17-macos-arm64。
 4. 打开 dmg，将 API.app 放入应用程序目录。试用包使用 ad-hoc 签名，尚未做 Apple Developer ID 公证；可能需要在系统隐私与安全设置中明确允许打开。
 5. 首次 Mac 使用需重新接入个人分发 Key；Windows DPAPI 文件不能在 Mac 解密。Mac 保存使用系统钥匙串，不保存在源码或安装包中。
 6. 默认仍连接 http://raspberry5.local:1456，Mac 必须能访问该树莓派。云端 runner 无法直接访问你家中的树莓派，云端验证不自动发送真实模型消息。
@@ -33,3 +33,5 @@ Key 接入、模型目录读取、合并聊天窗口、会话空间与模型提�
 Mac 构建副本已移除上游内嵌的 Google OAuth 客户端 Secret 和 Windsurf Firebase 应用 Key。隐藏后台只暴露 GPT／Claude 网关原生切换入口；Antigravity、Windsurf 和 Gemini CLI 账号登录不属于本产品。Gemini 内置聊天直接使用树莓派网关和个人分发 Key。该清理不修改 Windows 原工程或树莓派部署。
 不需要在仓库设置这些业务秘密，也不需要把 GitHub 密码或 Token 发到聊天。
 第三方许可随源码保留：Cherry Studio AGPL-3.0，Cockpit Tools CC-BY-NC-SA-4.0；原生组件仅作为对应工具的用户请求适配。
+
+1.0.17 Mac 对齐补丁：主窗口双 Key 独立接入；全部模型目录校验后原子保存；添加平台保留当前空间，更换 Key 打开隔离空间；复用未读回复、会话归档、可搜索模型选择面板及会话菜单。Windows DWM 和注册表代码不在 Mac 执行，Mac 继续使用完整首帧与应用内直连。自动更新仍禁用。
