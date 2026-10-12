@@ -8,7 +8,7 @@ import shutil
 workspace = Path(__file__).resolve().parents[2]
 destination = workspace / 'mac-key-ci'
 assert destination.resolve().parent == workspace.resolve() and (destination / '.git').is_dir()
-excluded = {'.git', 'node_modules', 'target', 'out', 'dist', 'build', '.build', '.keys', '__pycache__', '.cache', '.venv', 'coverage', 'release', '.pnpm-store'}
+excluded = {'.git', 'node_modules', 'target', 'out', 'dist', 'build', '.build', '.keys', '__pycache__', '.cache', '.venv', 'coverage', '.pnpm-store'}
 binary = {'.exe', '.dll', '.node', '.pdb', '.lib', '.nupkg', '.zip', '.dmg', '.msi', '.dpapi', '.pem', '.pfx', '.p12', '.sqlite', '.sqlite-wal', '.sqlite-shm'}
 
 def allowed(file):
@@ -17,7 +17,7 @@ def allowed(file):
 
 def tree(source, target):
     for folder, directories, names in os.walk(source):
-        directories[:] = [name for name in directories if name not in excluded]
+        directories[:] = [name for name in directories if name not in excluded and not (source == workspace / 'api-macos' and Path(folder) == source and name == 'release')]
         for name in names:
             file = Path(folder) / name
             if not file.is_file() or not allowed(file):
@@ -53,7 +53,7 @@ for source, target in [('juhai-logo.png', 'brand.png'), ('app-icon-preview.png',
 flows = destination / '.github/workflows'
 flows.mkdir(parents=True, exist_ok=True)
 shutil.copy2(workspace / 'api-macos/cloud-workflow.yml', flows / 'macos-build.yml')
-(destination / '.gitignore').write_text('node_modules/\ntarget/\nbuild/\nout/\ndist/\nrelease/\n.env\n.env.*\n*.dpapi\n.keys/\n*.keychain\n', encoding='utf8')
+(destination / '.gitignore').write_text('node_modules/\ntarget/\nbuild/\nout/\ndist/\n/api-macos/release/\n.env\n.env.*\n*.dpapi\n.keys/\n*.keychain\n', encoding='utf8')
 shutil.copy2(workspace / 'api-macos/云端构建说明.txt', destination / '构建说明.txt')
 shutil.copy2(workspace / 'api-macos/cloud-readme.md', destination / 'README.md')
 files = [file for file in destination.rglob('*') if file.is_file() and '.git' not in file.relative_to(destination).parts]
