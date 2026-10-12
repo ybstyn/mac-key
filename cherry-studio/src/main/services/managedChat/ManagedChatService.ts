@@ -483,7 +483,7 @@ export class ManagedChatService extends BaseService {
         .select({
           id: topicTable.id,
           firstUserText: sql<string>`coalesce((select substr(${messageTable.searchableText}, 1, 120) from ${messageTable} where ${messageTable.topicId} = ${topicTable.id} and ${messageTable.role} = 'user' and ${messageTable.deletedAt} is null order by ${messageTable.createdAt}, ${messageTable.id} limit 1), '')`,
-          latestReplyAt: sql<number>`coalesce((select max(${messageTable.updatedAt}) from ${messageTable} where ${messageTable.topicId} = ${topicTable.id} and ${messageTable.role} = 'assistant' and ${messageTable.status} = 'success' and ${messageTable.deletedAt} is null), 0)`
+          latestReplyAt: sql<number>`coalesce((select max(${messageTable.createdAt}) from ${messageTable} where ${messageTable.topicId} = ${topicTable.id} and ${messageTable.role} = 'assistant' and ${messageTable.status} = 'success' and ${messageTable.deletedAt} is null), 0)`
         })
         .from(topicTable)
         .where(inArray(topicTable.id, ids))
@@ -493,7 +493,7 @@ export class ManagedChatService extends BaseService {
         for (const topic of model.topics) {
           const row = byId.get(topic.id)
           topic.latestReplyAt = row?.latestReplyAt || 0
-          if (!topic.name) topic.name = (row?.firstUserText || '').replace(/\s+/g, ' ').trim().slice(0, 56)
+          if (!topic.name) topic.name = Array.from((row?.firstUserText || '').replace(/\s+/g, ' ').trim()).slice(0, 56).join('')
         }
     }
     return { models }
