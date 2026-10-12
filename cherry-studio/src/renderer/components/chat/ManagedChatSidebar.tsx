@@ -125,7 +125,10 @@ function ReplyIndicator({ topicId, unread }: { topicId: string; unread: boolean 
     )
   if (isPending)
     return (
-      <LoaderCircle className="size-3 shrink-0 animate-spin text-muted-foreground" aria-label={t('common.loading')} />
+      <LoaderCircle
+        className="size-3 shrink-0 animate-spin text-muted-foreground motion-reduce:animate-none"
+        aria-label={t('common.loading')}
+      />
     )
   return null
 }

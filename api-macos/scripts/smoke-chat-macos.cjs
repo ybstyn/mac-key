@@ -79,8 +79,9 @@ async function close(instance) { await instance.close(); opened.delete(instance)
   assert.ok(change.ok);
   const invalid = await main.evaluate(() => window.api.invoke('save-chat', { key: 'invalid-local-fixture', remember: true }));
   assert.equal(invalid.ok, false); assert.match(invalid.message, /Key.*无效/);
-  const seed = async other => launcher.evaluate(({ app, safeStorage }, { origin, keys, other }) => {
-    const path = require('node:path'), { MacStore } = require(path.join(app.getAppPath(), 'src/store.cjs'));
+  const seed = async other => launcher.evaluate(async ({ app, safeStorage }, { origin, keys, other }) => {
+    const path = await import('node:path'), { pathToFileURL } = await import('node:url');
+    const { MacStore } = (await import(pathToFileURL(path.join(app.getAppPath(), 'src/store.cjs')).href)).default;
     const store = new MacStore(path.join(app.getPath('appData'), 'JuhaiAPI'), { encrypt: value => safeStorage.encryptString(value), decrypt: value => safeStorage.decryptString(value) });
     const group = store.bind('claude', other ? keys.other : keys.claude, true);
     if (!other) store.bind('gemini', keys.gemini, true, group);

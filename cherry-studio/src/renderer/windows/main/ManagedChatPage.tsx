@@ -115,14 +115,19 @@ export default function ManagedChatPage() {
     }
   }, [models, topicId])
   useEffect(() => {
-    const update = () => setReading(!document.hidden && document.hasFocus())
+    const update = () =>
+      setReading(!document.hidden && document.hasFocus() && !document.querySelector('[role="dialog"]'))
     window.addEventListener('focus', update)
     window.addEventListener('blur', update)
     document.addEventListener('visibilitychange', update)
+    const overlays = new MutationObserver(update)
+    overlays.observe(document.body, { childList: true })
+    update()
     return () => {
       window.removeEventListener('focus', update)
       window.removeEventListener('blur', update)
       document.removeEventListener('visibilitychange', update)
+      overlays.disconnect()
     }
   }, [])
   useEffect(() => {
