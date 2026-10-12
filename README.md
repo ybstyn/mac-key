@@ -10,4 +10,6 @@ The initial trial package is not Apple Developer ID notarized. At the user's req
 
 Credentials are entered by users after installation and protected by the macOS Keychain. Distributed Keys, account tokens, Raspberry Pi credentials and update private keys are excluded from the source and artifacts.
 
+Embedded upstream Google OAuth client secrets and the Windsurf Firebase application key are removed from this Mac build source. The hidden helper exposes only the existing GPT/Claude gateway switching commands; Google OAuth, Antigravity, Windsurf and Gemini CLI account login are outside this product. Embedded Gemini chat uses the Raspberry Pi gateway and the user's distributed Key.
+
 See [构建说明.txt](构建说明.txt) for Chinese instructions and the current capability boundaries. Cherry Studio source is AGPL-3.0; Cockpit Tools source retains CC-BY-NC-SA-4.0. Original licenses are included with their corresponding sources.
