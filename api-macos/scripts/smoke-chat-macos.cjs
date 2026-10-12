@@ -214,7 +214,23 @@ async function captureFailure(error) {
   assert.ok(added.models.every(model => model.topics.every(topic => !Object.values(topics).includes(topic.id))));
   await close(otherChat);
   await launcher.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.setSize(1024, 700); window.webContents.setZoomFactor(1.25); });
-  await main.screenshot({ path: path.join(project, 'release/macos-scaled-preview.png') });
+  await main.waitForFunction(() => window.innerWidth > 780);
+  const scaledLayout = await main.evaluate(() => {
+    const selectors = ['.heading', '#gpt', '#chat', '#status', 'footer'];
+    return { width: innerWidth, height: innerHeight, boxes: selectors.map(selector => {
+      const rect = document.querySelector(selector).getBoundingClientRect();
+      return { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+    }) };
+  });
+  assert.ok(scaledLayout.boxes.every(rect => rect.left >= 0 && rect.top >= 0 && rect.right <= scaledLayout.width + 1 && rect.bottom <= scaledLayout.height + 1), JSON.stringify(scaledLayout));
+  const scaledImage = await launcher.evaluate(async ({ BrowserWindow }) => {
+    const window = BrowserWindow.getAllWindows()[0];
+    const image = await window.webContents.capturePage();
+    return { png: image.toPNG().toString('base64'), size: image.getSize(), windowSize: window.getContentSize() };
+  });
+  assert.equal(scaledImage.size.width, scaledImage.windowSize[0]);
+  fs.writeFileSync(path.join(project, 'release/macos-scaled-preview.png'), Buffer.from(scaledImage.png, 'base64'));
+  fs.writeFileSync(path.join(project, 'release/macos-scaled-layout.json'), JSON.stringify({ layout: scaledLayout, imageSize: scaledImage.size, contentSize: scaledImage.windowSize }, null, 2));
   await launcher.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.hide(); window.show(); window.focus(); });
   await expect(main.locator('#gpt')).toBeVisible();
   await close(launcher);
