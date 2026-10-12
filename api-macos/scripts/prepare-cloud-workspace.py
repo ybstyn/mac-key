@@ -50,6 +50,11 @@ assets = destination / 'api-macos/assets'
 assets.mkdir(exist_ok=True)
 for source, target in [('juhai-logo.png', 'brand.png'), ('app-icon-preview.png', 'brand-icon.png'), ('openai.png', 'openai.png'), ('claude.png', 'claude.png'), ('gemini.png', 'gemini.png')]:
     shutil.copy2(workspace / 'cockpit-link/assets' / source, assets / target)
+cherry_brand = destination / 'cherry-studio/build'
+cherry_brand.mkdir(exist_ok=True)
+shutil.copy2(workspace / 'cockpit-link/assets/app-icon-preview.png', cherry_brand / 'icon.png')
+for name in ['tray_icon.png', 'tray_icon_dark.png', 'tray_icon_light.png']:
+    shutil.copy2(workspace / 'cockpit-link/assets/juhai-logo.png', cherry_brand / name)
 flows = destination / '.github/workflows'
 flows.mkdir(parents=True, exist_ok=True)
 shutil.copy2(workspace / 'api-macos/cloud-workflow.yml', flows / 'macos-build.yml')

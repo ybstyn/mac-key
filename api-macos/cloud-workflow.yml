@@ -35,13 +35,21 @@ jobs:
       - name: Check and build embedded chat
         run: bash api-macos/scripts/build-cloud.sh ui
       - name: Restore native compiler cache
-        uses: actions/cache@v4
+        id: native-cache
+        uses: actions/cache/restore@v4
         with:
           path: native-source/target
           key: macos-arm64-native-${{ hashFiles('native-source/Cargo.lock', 'native-source/**/Cargo.toml') }}
           restore-keys: macos-arm64-native-
       - name: Compile original Cockpit native engine for ARM64
+        id: native-build
         run: bash api-macos/scripts/build-cloud.sh native
+      - name: Save native compiler cache
+        if: always() && steps.native-build.outcome != 'skipped' && steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: native-source/target
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
       - name: Package and verify native engine, Keychain and embedded chat
         run: bash api-macos/scripts/build-cloud.sh package
       - name: Upload installable artifacts and verification reports
