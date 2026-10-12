@@ -38,8 +38,11 @@ jobs:
         id: native-cache
         uses: actions/cache/restore@v4
         with:
-          path: native-source/target
-          key: macos-arm64-native-${{ hashFiles('native-source/Cargo.lock', 'native-source/**/Cargo.toml') }}
+          path: |
+            native-source/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: macos-arm64-native-${{ hashFiles('native-source/Cargo.lock', 'native-source/**/Cargo.toml') }}-v2
           restore-keys: macos-arm64-native-
       - name: Compile original Cockpit native engine for ARM64
         id: native-build
@@ -48,7 +51,10 @@ jobs:
         if: always() && steps.native-build.outcome != 'skipped' && steps.native-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: native-source/target
+          path: |
+            native-source/target
+            ~/.cargo/registry
+            ~/.cargo/git
           key: ${{ steps.native-cache.outputs.cache-primary-key }}
       - name: Package and verify native engine, Keychain and embedded chat
         run: bash api-macos/scripts/build-cloud.sh package
