@@ -12,6 +12,7 @@ const stage = path.join(project, 'build', 'app'), bundle = path.join(stage, 'API
 if (fs.existsSync(bundle)) throw new Error('Build stage already exists; use a clean build checkout');
 fs.mkdirSync(stage, { recursive: true });
 fs.cpSync(path.join(cherry, 'node_modules/electron/dist/Electron.app'), bundle, { recursive: true, verbatimSymlinks: true });
+fs.renameSync(path.join(contents, 'MacOS/Electron'), path.join(contents, 'MacOS/API'));
 fs.mkdirSync(app, { recursive: true });
 for (const folder of ['src', 'ui', 'assets']) fs.cpSync(path.join(project, folder), path.join(app, folder), { recursive: true });
 fs.copyFileSync(path.join(project, 'package.json'), path.join(app, 'package.json'));
@@ -63,7 +64,7 @@ const plist = path.join(contents, 'Info.plist');
 const minimum = spawnSync('/usr/libexec/PlistBuddy', ['-c', 'Print :LSMinimumSystemVersion', plist], { encoding: 'utf8' });
 assert.equal(minimum.status, 0, 'Electron minimum macOS version must be available');
 const minimumMacOS = minimum.stdout.trim();
-for (const [key, value] of [['CFBundleDisplayName', 'API'], ['CFBundleName', 'API'], ['CFBundleIdentifier', 'com.juhai.api'], ['CFBundleShortVersionString', version], ['CFBundleVersion', version]]) run('/usr/libexec/PlistBuddy', ['-c', 'Set :' + key + ' ' + value, plist]);
+for (const [key, value] of [['CFBundleExecutable', 'API'], ['CFBundleDisplayName', 'API'], ['CFBundleName', 'API'], ['CFBundleIdentifier', 'com.juhai.api'], ['CFBundleShortVersionString', version], ['CFBundleVersion', version]]) run('/usr/libexec/PlistBuddy', ['-c', 'Set :' + key + ' ' + value, plist]);
 const iconset = path.join(project, 'build/brand.iconset'); fs.mkdirSync(iconset, { recursive: true });
 for (const size of [16, 32, 128, 256, 512]) for (const scale of [1, 2]) run('/usr/bin/sips', ['-z', String(size * scale), String(size * scale), path.join(project, 'assets/brand-icon.png'), '--out', path.join(iconset, 'icon_' + size + 'x' + size + (scale === 2 ? '@2x' : '') + '.png')]);
 run('/usr/bin/iconutil', ['-c', 'icns', iconset, '-o', path.join(resources, 'electron.icns')]);
@@ -72,7 +73,7 @@ for (const file of walk(bundle).filter(file => fs.lstatSync(file).isSymbolicLink
   const link = fs.readlinkSync(file), resolved = fs.realpathSync(file);
   if (path.isAbsolute(link) || !resolved.startsWith(bundle + path.sep)) throw new Error('Bundle symlink escapes the application: ' + path.relative(bundle, file));
 }
-for (const executable of [path.join(contents, 'MacOS/Electron'), path.join(resources, 'native-engine/cockpit-tools.app/Contents/MacOS/cockpit-tools')]) {
+for (const executable of [path.join(contents, 'MacOS/API'), path.join(resources, 'native-engine/cockpit-tools.app/Contents/MacOS/cockpit-tools')]) {
   run('/usr/bin/lipo', [executable, '-verify_arch', 'arm64']);
 }
 for (const file of walk(bundle).filter(file => /\.(node|dylib)$/.test(file))) { const check = spawnSync('/usr/bin/lipo', [file, '-verify_arch', 'arm64'], { encoding: 'utf8' }); if (check.status !== 0) throw new Error('Non-arm64 native dependency: ' + path.relative(bundle, file)); }

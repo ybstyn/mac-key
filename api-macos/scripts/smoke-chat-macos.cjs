@@ -10,7 +10,7 @@ assert.equal(process.arch, 'arm64');
 assert.equal(process.env.CI, 'true', 'Chat verification runs only in isolated CI');
 const project = path.resolve(__dirname, '..');
 const { _electron: electron, expect } = createRequire(path.join(project, '../cherry-studio/package.json'))('@playwright/test');
-const executable = path.join(project, 'build/app/API.app/Contents/MacOS/Electron');
+const executable = path.join(project, 'build/app/API.app/Contents/MacOS/API');
 const runId = crypto.randomUUID();
 const keys = { claude: 'fixture-claude-' + runId, gemini: 'fixture-gemini-' + runId, other: 'fixture-other-' + runId };
 const markers = { claude: 'Mac Claude stream ' + runId, gemini: 'Mac Gemini stream ' + runId };

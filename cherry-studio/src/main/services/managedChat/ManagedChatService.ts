@@ -3,12 +3,14 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs/promises'
 import { promisify } from 'node:util'
 
-import { eq } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { app, session } from 'electron'
 
 import { application } from '@application'
 import { notifyDataApiDataChange } from '@data/dataApiDataChange'
 import { appStateTable } from '@data/db/schemas/appState'
+import { messageTable } from '@data/db/schemas/message'
+import { topicTable } from '@data/db/schemas/topic'
 import { assistantDataService } from '@data/services/AssistantService'
 import { messageService } from '@data/services/MessageService'
 import { modelService } from '@data/services/ModelService'
@@ -458,7 +460,12 @@ export class ManagedChatService extends BaseService {
           const topics = topicService
             .listActiveIdsByAssistant(assistantId)
             .map((id) => topicService.getById(id))
-            .map((topic) => ({ id: topic.id, name: topic.name }))
+            .map((topic) => ({
+              id: topic.id,
+              name: topic.name,
+              lastActivityAt: topic.lastActivityAt,
+              latestReplyAt: 0
+            }))
           return {
             id: model.id,
             name: model.name,
@@ -468,6 +475,27 @@ export class ManagedChatService extends BaseService {
           }
         })
     )
+    const ids = models.flatMap((model) => model.topics.map((topic) => topic.id))
+    if (ids.length) {
+      const metadata = application
+        .get('DbService')
+        .getDb()
+        .select({
+          id: topicTable.id,
+          firstUserText: sql<string>`coalesce((select substr(${messageTable.searchableText}, 1, 120) from ${messageTable} where ${messageTable.topicId} = ${topicTable.id} and ${messageTable.role} = 'user' and ${messageTable.deletedAt} is null order by ${messageTable.createdAt}, ${messageTable.id} limit 1), '')`,
+          latestReplyAt: sql<number>`coalesce((select max(${messageTable.updatedAt}) from ${messageTable} where ${messageTable.topicId} = ${topicTable.id} and ${messageTable.role} = 'assistant' and ${messageTable.status} = 'success' and ${messageTable.deletedAt} is null), 0)`
+        })
+        .from(topicTable)
+        .where(inArray(topicTable.id, ids))
+        .all()
+      const byId = new Map(metadata.map((row) => [row.id, row]))
+      for (const model of models)
+        for (const topic of model.topics) {
+          const row = byId.get(topic.id)
+          topic.latestReplyAt = row?.latestReplyAt || 0
+          if (!topic.name) topic.name = (row?.firstUserText || '').replace(/\s+/g, ' ').trim().slice(0, 56)
+        }
+    }
     return { models }
   }
   createTopic(modelId: string): { id: string } {

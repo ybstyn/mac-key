@@ -112,7 +112,8 @@ if (mode === 'chat') {
       if (process.platform !== 'darwin' || process.env.CI !== 'true') throw new Error('Mac smoke checks require an isolated macOS CI runner.');
       const output = process.argv[process.argv.indexOf('--api-smoke') + 1];
       if (!path.resolve(output).startsWith(path.resolve(app.getPath('temp')) + path.sep + 'api-mac-smoke-')) throw new Error('Smoke output must be isolated.');
-      const result = { keychainAvailable: safeStorage.isEncryptionAvailable(), platform: process.platform, arch: process.arch, nativeSwitches: 0 };
+      const result = { keychainAvailable: safeStorage.isEncryptionAvailable(), platform: process.platform, arch: process.arch, isPackaged: app.isPackaged, nativeSwitches: 0 };
+      if (!app.isPackaged) throw new Error('Mac 应用仍处于开发模式，不能通过安装包验收。');
       const cipher = encryption.encrypt('local-keychain-smoke-only'); result.keychainRoundTrip = encryption.decrypt(cipher) === 'local-keychain-smoke-only';
       native = new MacNative(path.join(output, 'native-data'), resources);
       try { const worker = await native.start('gpt'); const pong = await native.call(worker, { command: 'ping' }); result.nativeVersion = pong.upstreamVersion; result.nativeEntry = pong.nativeSwitchEntry; } finally { await native.stop(); }

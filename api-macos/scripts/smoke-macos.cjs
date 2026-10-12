@@ -5,7 +5,7 @@ const os = require('node:os');
 const { spawnSync } = require('node:child_process');
 assert.equal(process.platform, 'darwin'); assert.equal(process.arch, 'arm64');
 const root = path.resolve(__dirname, '..'), output = fs.mkdtempSync(path.join(os.tmpdir(), 'api-mac-smoke-'));
-const executable = path.join(root, 'build/app/API.app/Contents/MacOS/Electron');
+const executable = path.join(root, 'build/app/API.app/Contents/MacOS/API');
 const launch = spawnSync(executable, ['--api-smoke', output], { env: { ...process.env, CI: 'true' }, timeout: 120000, encoding: 'utf8' });
 fs.writeFileSync(path.join(root, 'release/macos-boot-diagnostics.json'), JSON.stringify({ status: launch.status, signal: launch.signal, stdout: launch.stdout, stderr: launch.stderr }, null, 2));
 assert.equal(launch.status, 0, 'Mac executable must start, unlock Keychain and ping the native engine: ' + launch.stderr.slice(-1500));
