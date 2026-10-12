@@ -1,6 +1,6 @@
 {
   "name": "juhai-api-macos",
-  "version": "1.0.15",
+  "version": "1.0.17",
   "private": true,
   "productName": "API",
   "description": "API Apple Silicon desktop launcher and embedded managed chat",

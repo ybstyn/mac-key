@@ -46,3 +46,43 @@ test('legacy automatic download preference is removed and cannot be enabled in t
   assert.equal('autoDownload' in JSON.parse(fs.readFileSync(path.join(root, 'settings.json'), 'utf8')), false);
   assert.throws(() => store.saveSettings({ autoDownload: true }));
 });
+test('dual keys save together and invalid input leaves both credentials unchanged', t => {
+  const { store, root, encryption } = fixture(t); store.bind('gpt', 'gpt-preserved', true);
+  const group = store.bindKeys({ claude: 'claude-one', gemini: 'gemini-one' }, true);
+  assert.equal(new MacStore(root, encryption).bindKeys({ gemini: 'gemini-one', claude: 'claude-one' }, true), group);
+  assert.equal(store.key('claude'), 'claude-one'); assert.equal(store.key('gemini'), 'gemini-one'); assert.equal(store.key('gpt'), 'gpt-preserved');
+  const before = fs.readFileSync(path.join(root, 'keys.keychain'));
+  assert.throws(() => store.bindKeys({ claude: 'claude-two', gemini: 'invalid\nkey' }, true));
+  assert.deepEqual(fs.readFileSync(path.join(root, 'keys.keychain')), before);
+});
+test('replacing a key selects isolated history and single keys do not reopen paired history', t => {
+  const { store } = fixture(t);
+  const original = store.bindKeys({ claude: 'claude-one', gemini: 'gemini-one' }, true);
+  atomicMarker(store.profile(original));
+  const changed = store.bindKeys({ claude: 'claude-two', gemini: 'gemini-one' }, true, '', ['claude']);
+  assert.notEqual(changed, original);
+  assert.equal(store.keysFor(original)['claude@' + store.settings.server], 'claude-one');
+  assert.equal(fs.existsSync(path.join(store.profile(original), 'history-marker')), true);
+  assert.equal(fs.existsSync(path.join(store.profile(changed), 'history-marker')), false);
+  assert.notEqual(store.bindKeys({ claude: 'claude-two' }, true), changed);
+});
+test('adding a platform keeps the current history and unremembered changes preserve the untouched key', t => {
+  const { store } = fixture(t);
+  const solo = store.bindKeys({ claude: 'claude-one' }, true);
+  assert.equal(store.bindKeys({ claude: 'claude-one', gemini: 'gemini-one' }, true, solo, ['gemini']), solo);
+  const changed = store.bindKeys({ claude: 'claude-two', gemini: 'gemini-one' }, true, '', ['claude']);
+  store.bindKeys({ claude: 'claude-two', gemini: 'gemini-one' }, false, changed, ['claude']);
+  assert.equal(store.key('claude'), ''); assert.equal(store.key('gemini'), 'gemini-one');
+  assert.equal(store.keysFor(changed)['gemini@' + store.settings.server], 'gemini-one');
+  store.bind('claude', 'another-window', true);
+  store.bindKeys({ claude: 'claude-two', gemini: 'gemini-one' }, true, changed, ['gemini']);
+  assert.equal(store.key('claude'), 'another-window');
+});
+test('an encryption failure during a batch leaves the original keychain file intact', t => {
+  const { store, root, encryption } = fixture(t); store.bindKeys({ claude: 'claude-one', gemini: 'gemini-one' }, true);
+  const before = fs.readFileSync(path.join(root, 'keys.keychain'));
+  store.encryption = { ...encryption, encrypt() { throw new Error('Keychain unavailable'); } };
+  assert.throws(() => store.bindKeys({ claude: 'claude-two', gemini: 'gemini-two' }, true), /Keychain unavailable/);
+  assert.deepEqual(fs.readFileSync(path.join(root, 'keys.keychain')), before);
+});
+function atomicMarker(profile) { fs.mkdirSync(profile, { recursive: true }); fs.writeFileSync(path.join(profile, 'history-marker'), 'existing private history'); }

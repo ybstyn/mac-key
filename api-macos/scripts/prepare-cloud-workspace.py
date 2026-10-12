@@ -62,6 +62,6 @@ shutil.copy2(workspace / 'api-macos/cloud-workflow.yml', flows / 'macos-build.ym
 shutil.copy2(workspace / 'api-macos/云端构建说明.txt', destination / '构建说明.txt')
 shutil.copy2(workspace / 'api-macos/cloud-readme.md', destination / 'README.md')
 files = [file for file in destination.rglob('*') if file.is_file() and '.git' not in file.relative_to(destination).parts]
-report = {'files': len(files), 'bytes': sum(file.stat().st_size for file in files), 'nativeTransport': 'macOS same-user authenticated Unix socket', 'modelCalls': 0, 'macBuildExecuted': False, 'excludedUnusedUpstreamGoogleAppValues': removed_upstream_values}
+report = {'version': json.loads((workspace / 'api-macos/package.json').read_text(encoding='utf8'))['version'], 'stage': 'source preparation', 'files': len(files), 'bytes': sum(file.stat().st_size for file in files), 'nativeTransport': 'macOS same-user authenticated Unix socket', 'modelCalls': 0, 'excludedUnusedUpstreamGoogleAppValues': removed_upstream_values}
 (destination / 'preparation-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf8')
 print(json.dumps(report))

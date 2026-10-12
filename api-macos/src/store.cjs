@@ -62,6 +62,46 @@ class MacStore {
     value.groups[selected] = item; this.saveVault(value); return selected;
     });
   }
+  bindKeys(submitted, remember, preferredGroup = '', enteredPlatforms) {
+    const inputs = {};
+    for (const [platform, raw] of Object.entries(submitted)) {
+      if (!['claude', 'gemini'].includes(platform) || typeof raw !== 'string') throw new Error('请输入有效的平台 Key。');
+      const key = raw.trim(); if (!key) continue;
+      if (key.length > 4096 || /[\x00-\x1f\x7f]/.test(raw)) throw new Error('Key 格式无效。');
+      inputs[platform] = key;
+    }
+    const platforms = Object.keys(inputs), entered = new Set(enteredPlatforms || platforms);
+    if (!platforms.length || !entered.size || [...entered].some(platform => !inputs[platform])) throw new Error('请至少填写一个有效的平台 Key。');
+    if (preferredGroup && !/^[a-f0-9]{32}$/.test(preferredGroup)) throw new Error('本地会话空间无效。');
+    return this.mutateVault(() => {
+      const value = this.vault(), hash = text => crypto.createHash('sha256').update(text).digest('hex');
+      value.pairs ||= {};
+      const binding = platform => hash(this.settings.server + '\n' + platform + '\n' + inputs[platform]);
+      const compatible = group => platforms.every(platform => {
+        const saved = value.groups[group]?.[this.id(platform)], known = value.bindings[binding(platform)];
+        return (!saved || saved === inputs[platform]) && (!known || known === group);
+      });
+      const pair = platforms.length === 2 ? 'pair:' + hash(this.settings.server + '\nclaude\n' + inputs.claude + '\ngemini\n' + inputs.gemini) : 'single:' + binding(platforms[0]);
+      let group = value.pairs[pair] || (platforms.length === 1 ? value.bindings[binding(platforms[0])] : '');
+      if (!group && preferredGroup && compatible(preferredGroup)) group = preferredGroup;
+      if (!group) {
+        const prior = [...new Set(platforms.map(binding).map(id => value.bindings[id]).filter(Boolean))];
+        if (prior.length === 1 && compatible(prior[0])) group = prior[0];
+      }
+      group ||= platforms.length === 2 ? hash('paired\n' + this.settings.server + '\n' + inputs.claude + '\n' + inputs.gemini).slice(0, 32) : binding(platforms[0]).slice(0, 32);
+      const item = value.groups[group] || {};
+      for (const platform of platforms) if (item[this.id(platform)] && item[this.id(platform)] !== inputs[platform]) throw new Error('Key 与此会话空间不匹配。');
+      value.pairs[pair] = group;
+      if (platforms.length === 1) value.bindings[binding(platforms[0])] = group;
+      for (const platform of platforms) {
+        const id = this.id(platform), key = inputs[platform];
+        const persist = entered.has(platform) ? remember : Object.values(value.groups).some(row => row[id] === key) || value.keys[id] === key;
+        if (persist) item[id] = key; else delete item[id];
+        if (entered.has(platform)) { if (remember) value.keys[id] = key; else if (value.keys[id] === key) delete value.keys[id]; }
+      }
+      value.groups[group] = item; this.saveVault(value); return group;
+    });
+  }
   keysFor(group) { return this.vault().groups[group] || {}; }
   profile(group) { if (!/^[a-f0-9]{32}$/.test(group)) throw new Error('本地会话空间无效。'); return path.join(this.root, 'cherry-chats', 'shared', group); }
   ownProfile(profile) { const full = path.resolve(profile), base = path.join(this.root, 'cherry-chats', 'shared') + path.sep; if (!full.startsWith(base) || !/^[a-f0-9]{32}$/.test(path.basename(full))) throw new Error('会话不属于当前用户。'); return full; }

@@ -15,6 +15,7 @@ const runId = crypto.randomUUID();
 const keys = { claude: 'fixture-claude-' + runId, gemini: 'fixture-gemini-' + runId, other: 'fixture-other-' + runId };
 const markers = { claude: 'Mac Claude stream ' + runId, gemini: 'Mac Gemini stream ' + runId };
 const observations = [];
+const pendingStreams = new Map();
 let failure;
 const server = http.createServer(async (request, response) => {
   try {
@@ -43,12 +44,16 @@ const server = http.createServer(async (request, response) => {
     if (platform === 'claude') {
       event({ type: 'message_start', message: { id: 'local-' + runId, type: 'message', role: 'assistant', model: body.model, content: [], stop_reason: null, stop_sequence: null, usage: { input_tokens: 1, output_tokens: 0 } } });
       event({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } });
-      for (const text of [markers.claude.slice(0, 12), markers.claude.slice(12)]) { event({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } }); await new Promise(resolve => setTimeout(resolve, 100)); }
+      event({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: markers.claude.slice(0, 12) } });
+      await new Promise(resolve => pendingStreams.set(platform, resolve));
+      event({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: markers.claude.slice(12) } });
       event({ type: 'content_block_stop', index: 0 });
       event({ type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 4 } });
       event({ type: 'message_stop' });
     } else {
-      for (const text of [markers.gemini.slice(0, 12), markers.gemini.slice(12)]) { send({ candidates: [{ index: 0, content: { role: 'model', parts: [{ text }] } }] }); await new Promise(resolve => setTimeout(resolve, 100)); }
+      send({ candidates: [{ index: 0, content: { role: 'model', parts: [{ text: markers.gemini.slice(0, 12) }] } }] });
+      await new Promise(resolve => pendingStreams.set(platform, resolve));
+      send({ candidates: [{ index: 0, content: { role: 'model', parts: [{ text: markers.gemini.slice(12) }] } }] });
       send({ candidates: [{ index: 0, finishReason: 'STOP', content: { role: 'model', parts: [] } }], usageMetadata: { promptTokenCount: 1, candidatesTokenCount: 4, totalTokenCount: 5 } });
     }
     response.end();
@@ -60,17 +65,17 @@ async function rpc(page, route, input) {
   assert.ok(envelope.ok, JSON.stringify(envelope.error)); return envelope.data;
 }
 async function catalogReady(page, count) {
-  await expect(page.locator('[data-ui="api-managed.model-picker"]')).toBeVisible({ timeout: 90000 });
+  await expect(page.locator('[data-ui~="api-managed.model-picker"]')).toBeVisible({ timeout: 90000 });
   const workspace = await rpc(page, 'managed_chat.workspace');
   assert.equal(workspace.models.length, count);
-  await page.locator('[data-ui="api-managed.model-picker"]').click();
-  await expect(page.locator('[data-ui="api-managed.model"]')).toHaveCount(count);
+  await page.locator('[data-ui~="api-managed.model-picker"]').click();
+  await expect(page.locator('[data-ui~="api-managed.model"]')).toHaveCount(count);
   await page.keyboard.press('Escape');
   return workspace;
 }
 async function selectModel(page, model) {
-  await page.locator('[data-ui="api-managed.model-picker"]').click();
-  await page.locator('[data-ui="api-managed.model"][data-model-id="' + model.id + '"]').click();
+  await page.locator('[data-ui~="api-managed.model-picker"]').click();
+  await page.locator('[data-ui~="api-managed.model"][data-model-id="' + model.id + '"]').click();
 }
 async function chatWindow(instance) {
   let selected;
@@ -137,13 +142,23 @@ async function captureFailure(error) {
   assert.ok(change.ok);
   const invalid = await main.evaluate(() => window.api.invoke('save-chat', { key: 'invalid-local-fixture', remember: true }));
   assert.equal(invalid.ok, false); assert.match(invalid.message, /Key.*无效/);
+  const beforePair = await main.evaluate(() => window.api.invoke('state'));
+  const invalidPair = await main.evaluate(({ gemini }) => window.api.invoke('save-chat', { gemini, claude: 'invalid-local-fixture', remember: true }), keys);
+  assert.equal(invalidPair.ok, false);
+  assert.deepEqual((await main.evaluate(() => window.api.invoke('state'))).keys, beforePair.keys);
+  const validPair = await main.evaluate(({ gemini, claude }) => window.api.invoke('save-chat', { gemini, claude, remember: true }), keys);
+  assert.equal(validPair.ok, true);
+  await main.locator('#chat').click();
+  await expect(main.locator('#geminiKey')).toBeVisible(); await expect(main.locator('#claudeKey')).toBeVisible();
+  assert.equal(await main.locator('#geminiKey').inputValue(), ''); assert.equal(await main.locator('#claudeKey').inputValue(), '');
+  await main.screenshot({ path: path.join(project, 'release/macos-dual-key-preview.png') });
+  await main.locator('#cancel').click();
   const seed = async other => launcher.evaluate(({ app, safeStorage }, { origin, keys, other }) => {
     const path = process.getBuiltinModule('node:path');
     const load = process.getBuiltinModule('node:module').createRequire(path.join(app.getAppPath(), 'package.json'));
     const { MacStore } = load(path.join(app.getAppPath(), 'src/store.cjs'));
     const store = new MacStore(path.join(app.getPath('appData'), 'JuhaiAPI'), { encrypt: value => safeStorage.encryptString(value), decrypt: value => safeStorage.decryptString(value) });
-    const group = store.bind('claude', other ? keys.other : keys.claude, true);
-    if (!other) store.bind('gemini', keys.gemini, true, group);
+    const group = store.bindKeys(other ? { claude: keys.other } : { claude: keys.claude, gemini: keys.gemini }, true);
     const channels = [{ platform: 'claude', key: other ? keys.other : keys.claude, model: 'claude-haiku-fixture', models: [{ id: 'claude-haiku-fixture', label: 'Claude local fixture' }], sessions: [], channel: 'claude_messages' }];
     if (!other) channels.push({ platform: 'gemini', key: keys.gemini, model: 'gemini-flash-fixture', models: [{ id: 'gemini-flash-fixture', label: 'Gemini local fixture' }], sessions: [], channel: 'gemini_web' });
     return store.provision({ platform: 'shared', server: origin, group, entryPlatform: 'claude', channels });
@@ -156,11 +171,21 @@ async function captureFailure(error) {
     assert.ok(model.available);
     const topic = await rpc(page, 'managed_chat.create_topic', { modelId: model.id }); topics[platform] = topic.id;
     await selectModel(page, model);
-    await page.locator('[data-ui="api-managed.topic"][data-topic-id="' + topic.id + '"]').click({ timeout: 15000 });
-    await rpc(page, 'ai.stream.open', { topicId: topic.id, trigger: 'submit-message', userMessageParts: [{ type: 'text', text: 'hello-local-' + platform }] });
+    await page.locator('[data-ui~="api-managed.topic"][data-topic-id="' + topic.id + '"]').click({ timeout: 15000 });
+    const opening = rpc(page, 'ai.stream.open', { topicId: topic.id, trigger: 'submit-message', userMessageParts: [{ type: 'text', text: 'hello-local-' + platform }] }).then(value => ({ value }), error => ({ error }));
+    await expect(page.getByText(markers[platform].slice(0, 12), { exact: false }).first()).toBeVisible({ timeout: 45000 });
+    await expect(page.locator('[data-ui~="api-managed.new-topic"]')).toBeEnabled();
+    await expect(page.locator('[data-ui~="api-managed.platform"][data-platform="' + (platform === 'claude' ? 'gemini' : 'claude') + '"]')).toBeEnabled();
+    await page.locator('[data-ui~="api-managed.new-topic"]').click();
+    await expect(page.getByText(markers[platform].slice(0, 12), { exact: false }).first()).not.toBeVisible();
+    assert.ok(pendingStreams.has(platform)); pendingStreams.get(platform)(); pendingStreams.delete(platform);
+    const openedStream = await opening; if (openedStream.error) throw openedStream.error;
+    const unread = page.locator('[data-ui~="api-managed.unread"][data-unread-topic="' + topic.id + '"]');
+    await expect(unread).toBeVisible({ timeout: 15000 });
+    await page.screenshot({ path: path.join(project, 'release/macos-unread-' + platform + '-preview.png') });
+    await page.locator('[data-ui~="api-managed.topic"][data-topic-id="' + topic.id + '"]').click();
     await expect(page.getByText(markers[platform], { exact: false }).first()).toBeVisible({ timeout: 45000 });
-    await expect(page.locator('[data-ui="api-managed.new-topic"]')).toBeEnabled();
-    await expect(page.locator('[data-ui="api-managed.platform"][data-platform="' + (platform === 'claude' ? 'gemini' : 'claude') + '"]')).toBeEnabled();
+    await expect(unread).toHaveCount(0);
   }
   assert.ok(!failure, failure?.message);
   assert.ok(observations.some(row => row.platform === 'claude' && row.authenticated));
@@ -174,7 +199,7 @@ async function captureFailure(error) {
     const model = workspace.models.find(row => row.platform === platform);
     assert.ok(model.topics.some(row => row.id === topics[platform]), 'Saved conversations must survive restarting');
     await selectModel(restored, model);
-    await restored.locator('[data-ui="api-managed.topic"][data-topic-id="' + topics[platform] + '"]').click();
+    await restored.locator('[data-ui~="api-managed.topic"][data-topic-id="' + topics[platform] + '"]').click();
     await expect(restored.getByText(markers[platform], { exact: false }).first()).toBeVisible();
   }
   await close(reopened);
@@ -182,15 +207,23 @@ async function captureFailure(error) {
   const otherChat = await launch(['--api-chat'], otherProfile), otherPage = await chatWindow(otherChat);
   const otherWorkspace = await catalogReady(otherPage, 1);
   assert.ok(otherWorkspace.models.every(model => model.topics.every(topic => !Object.values(topics).includes(topic.id))), 'A different distributed Key must not load another user history');
+  const connected = await rpc(otherPage, 'managed_chat.connect_keys', { gemini: keys.gemini, claude: '', remember: true });
+  assert.equal(connected.switched, false); assert.deepEqual(connected.platforms, ['gemini']);
+  await expect.poll(async () => (await rpc(otherPage, 'managed_chat.workspace')).models.length, { timeout: 15000 }).toBe(2);
+  const added = await rpc(otherPage, 'managed_chat.workspace');
+  assert.ok(added.models.every(model => model.topics.every(topic => !Object.values(topics).includes(topic.id))));
   await close(otherChat);
   await launcher.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.setSize(1024, 700); window.webContents.setZoomFactor(1.25); });
   await main.screenshot({ path: path.join(project, 'release/macos-scaled-preview.png') });
   await launcher.evaluate(({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; window.hide(); window.show(); window.focus(); });
   await expect(main.locator('#gpt')).toBeVisible();
   await close(launcher);
-  fs.writeFileSync(path.join(project, 'release/macos-chat-smoke.json'), JSON.stringify({ passed: true, platform: 'darwin', arch: 'arm64', simulatedConversations: observations.length, authenticatedPaths: observations, sessionRestore: true, userIsolation: true, invalidKeyRejected: true, mainWindowScaled: true, windowRestore: true, realModelCalls: 0, officialClientsLaunched: 0 }, null, 2));
+  const pageErrors = diagnostics.flatMap(record => record.pages || []).filter(event => event.type === 'pageerror');
+  assert.deepEqual(pageErrors, [], 'Chat windows must not report an unhandled renderer error');
+  fs.writeFileSync(path.join(project, 'release/macos-chat-smoke.json'), JSON.stringify({ passed: true, version: JSON.parse(fs.readFileSync(path.join(project, 'package.json'))).version, platform: 'darwin', arch: 'arm64', simulatedConversations: observations.length, authenticatedPaths: observations, sessionRestore: true, userIsolation: true, invalidKeyRejected: true, invalidPairNotSaved: true, dualKeyEntry: true, macBatchBridge: true, interactiveWhileStreaming: true, unreadReplies: true, mainWindowScaled: true, windowRestore: true, realModelCalls: 0, officialClientsLaunched: 0 }, null, 2));
   console.log(JSON.stringify({ macChatSmokePassed: true, simulatedConversations: observations.length, realModelCalls: 0 }));
 })().catch(async error => { await captureFailure(error); console.error(error.stack); process.exitCode = 1; }).finally(async () => {
+  for (const resolve of pendingStreams.values()) resolve(); pendingStreams.clear();
   for (const instance of opened) { try { await instance.close(); } catch {} }
   server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
 });
